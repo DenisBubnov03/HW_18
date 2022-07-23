@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, jsonify
 from flask_restx import Namespace, Resource
 
 from app.container import movie_service
@@ -34,8 +34,11 @@ class MovieView(Resource):
 
     def post(self):
         req_json = request.json
-        movie_service.create(req_json)
-        return "", 201
+        new_movie = movie_service.create(req_json)
+        response = jsonify(movie_schema.dump(new_movie))
+        response.status_code = 201
+        response.headers['location'] = new_movie.id
+        return response
 
 
 
