@@ -1,7 +1,9 @@
-from flask import request
+
 from flask_restx import Namespace, Resource
-from app.setup_db import db
-from app.models import Genre, GenreSchema
+from app.container import  genre_service
+from app.dao.model.genre import GenreSchema
+
+
 
 
 genre_ns = Namespace('genre')
@@ -11,43 +13,16 @@ genres_schema = GenreSchema(many=True)
 @genre_ns.route('/')
 class GenreView(Resource):
     def get(self):
-        genre = Genre.query.all()
+        genre = genre_service.get_all()
         return genres_schema.dump(genre), 200
 
-    def post(self):
-        req_json = request.json
-        new_genre = Genre(**req_json)
-        with db.session.begin():
-            db.session.add(new_genre)
-        return "", 201
 
 
-@genre_ns.route('/<int:pk>/')
+@genre_ns.route('/<int:gid>/')
 class GenreView(Resource):
-    def get(self, pk):
+    def get(self, gid):
         try:
-            note = Genre.query.get(pk)
-            return genre_schema.dump(note), 200
+            genre = genre_service.get_one(gid)
+            return genre_schema.dump(genre), 200
         except Exception as e:
             return str(e), 404
-
-    def post(self):
-        req_json = request.json
-        new_genre = Genre(**req_json)
-        with db.session.begin():
-            db.session.add(new_genre)
-        return "", 201
-
-    def put(self, pk):
-        nots = Genre.query.get(pk)
-        req_json = request.json
-        nots.author = req_json.get("Genre")
-        db.session.add(nots)
-        db.session.commit()
-        return "", 204
-
-    def delete(self, pk):
-        user = Genre.query.get(pk)
-        db.session.delete(user)
-        db.session.commit()
-        return "", 204

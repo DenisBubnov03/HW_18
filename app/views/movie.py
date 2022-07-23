@@ -1,8 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource
-from app.setup_db import db
-from app.models import Movie, MovieSchema
 
+from app.container import movie_service
+from app.dao.model.movie import MovieSchema, Movie
 
 movie_ns = Namespace('movies')
 movie_schema = MovieSchema()
@@ -29,44 +29,31 @@ class MovieView(Resource):
         if year:
             movies = Movie.query.filter(Movie.year == year).all()
             return movies
-        movies = Movie.query.all()
+        movies = movie_service.get_all()
         return movies_schema.dump(movies), 200
 
     def post(self):
         req_json = request.json
-        new_movie = Movie(**req_json)
-        with db.session.begin():
-            db.session.add(new_movie)
+        movie_service.create(req_json)
         return "", 201
 
 
 
-@movie_ns.route('/<int:pk>/')
+@movie_ns.route('/<int:mid>/')
 class MoviesView(Resource):
-    def get(self, pk):
+    def get(self, mid):
         try:
-            note = Movie.query.get(pk)
-            return movie_schema.dump(note), 200
+            movie = movie_service.get_one(mid)
+            return movie_schema.dump(movie), 200
         except Exception as e:
             return str(e), 404
 
-    def put(self, pk):
-        nots = Movie.query.get(pk)
+    def put(self, mid):
         req_json = request.json
-        nots.author = req_json.get("Movie")
-        db.session.add(nots)
-        db.session.commit()
+        req_json["id"] = mid
+        movie_service.update(req_json)
         return "", 204
 
-    def post(self):
-        req_json = request.json
-        new_movie = Movie(**req_json)
-        with db.session.begin():
-            db.session.add(new_movie)
-        return "", 201
-
-    def delete(self, pk):
-        movie = Movie.query.get(pk)
-        db.session.delete(movie)
-        db.session.commit()
+    def delete(self, mid):
+        movie_service.delete(mid)
         return "", 204
